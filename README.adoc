@@ -10,13 +10,14 @@ Over the years, I've used a variety of languages to write these scripts.
 I started off writing scripts in Bash.
 Then I switched to Python for the more complicated scripts.
 
-But then discovered JBang, which allowed me to write scripts in Java.
+But then discovered https://www.jbang.dev/[JBang], which allowed me to write scripts in Java.
 I was excited by the idea of using Java since it's the language I use for most of my development.
 It's also statically typed, which helps me catch errors early.
 
 After a while, however, I felt that self-contained JBang scripts were not enough.
 Some scripts were complicated, and I wanted to break them up into multiple classes.
 I also wanted to develop the scripts using TDD instead of doing the equivalent of testing them in production (note: `git revert` is a handy way to undo the effects of a text processing script that goes wrong).
+
 Also, I wanted to avoid copy and paste code in the scripts by having a library of utility functions.
 A good strategy is to aggressively refactor the scripts to move as much code as possible into a shared library of utility functions.
 
