@@ -1,0 +1,4 @@
+dependencies {
+    implementation project(":jbang-scripting-common")
+    implementation "info.picocli:picocli:$picoCliVersion"
+}

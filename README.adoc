@@ -1,0 +1,193 @@
+
+= Example scripting with JBang
+
+This project illustrates how I've been using JBang to create scripts that are tested using JUnit 5.
+
+== Introduction
+
+I regularly write scripts to automate various tasks.
+Over the years, I've used a variety of languages to write these scripts.
+I started off writing scripts in Bash.
+Then I switched to Python for the more complicated scripts.
+
+But then discovered JBang, which allowed me to write scripts in Java.
+I was excited by the idea of using Java since it's the language I use for most of my development.
+It's also statically typed, which helps me catch errors early.
+
+After a while, however, I felt that self-contained JBang scripts were not enough.
+Some scripts were complicated, and I wanted to break them up into multiple classes.
+I also wanted to develop the scripts using TDD instead of doing the equivalent of testing them in production (note: `git revert` is a handy way to undo the effects of a text processing script that goes wrong).
+Also, I wanted to avoid copy and paste code in the scripts by having a library of utility functions.
+A good strategy is to aggressively refactor the scripts to move as much code as possible into a shared library of utility functions.
+
+== The solution
+
+This repository contains a Gradle project that shows how I've organized my JBang-based scripts and the associated Java code.
+The project defines a hello world JBang script and supporting classes.
+
+The key ideas are as follows:
+
+* Each JBang script is 'one-liner' that delegates to a command class
+* The command class contains the logic of the script that delegates as much as possible to utility functions
+* The utility functions are in a separate Gradle subproject used by multiple scripts
+* The command class (and the utility functions) are tested using JUnit 5
+* The command class and utility functions are published to Maven local
+
+The script can be run as follows:
+
+[source,shell]
+----
+$ ./gradlew build publishToMavenLocal
+
+$ .../jbang-scripting-scripts-hello-world/scripts/HelloWorld hello.txt
+----
+
+Let's look at each of the key classes in turn:
+
+=== The JBang script
+
+Here is the simple script class.
+
+[source,java]
+----
+public class HelloWorld {
+
+    public static void main(String... args) {
+        int exitCode = HelloWorldCommand.execute(args);
+        System.exit(exitCode);
+    }
+
+}
+----
+
+=== The command class
+
+Here's the corresponding command class.
+It uses https://picocli.info/[picocli] to process the command line argument and then delegates to a `HelloWorldWriter`, which implements the command's logic.
+This was done to separate the command line processing from the logic of the command and to make the command class easier to test.
+
+[source,java]
+----
+@Command(name = "HelloWorld", mixinStandardHelpOptions = true, version = "0.1",
+    description = "HelloWorld made with JBang")
+public class HelloWorldCommand implements Callable<Integer>  {
+
+
+  @Parameters(index = "0", description = "target file", defaultValue = ".")
+  private Path targetFile;
+
+  private final HelloWorldWriter writer;
+
+  public HelloWorldCommand(HelloWorldWriter writer) {
+    this.writer = writer;
+  }
+
+  @Override
+  public Integer call() {
+    writer.sayHello(targetFile);
+    return 0;
+  }
+
+  public static int execute(String... args) {
+    return execute(new HelloWorldCommand(new HelloWorldWriter()), args);
+  }
+
+  public static int execute(HelloWorldCommand command, String... args) {
+    return new CommandLine(command).execute(args);
+  }
+
+}
+----
+
+=== The `HelloWorldWriter` class
+
+This class used the utility function `FileUtil.writeLinesToFile()` to write 'Hello, World!' to the specified file.
+[source,java]
+----
+public class HelloWorldWriter {
+
+  void sayHello(Path targetFile) {
+    FileUtil.writeLinesToFile(targetFile, List.of("Hello, World!"));
+  }
+
+}
+----
+
+=== The tests for the command class
+
+Here are the tests for the command class that verify command argument processing.
+
+[source,java]
+----
+@ExtendWith(MockitoExtension.class)
+class HelloWorldCommandTest {
+
+  @Mock
+  private HelloWorldWriter writer;
+
+  @Test
+  public void shouldRequireArg() {
+
+    var result = HelloWorldCommand.execute(new HelloWorldCommand(writer));
+
+    assertThat(result).isNotEqualTo(0);
+
+    verifyNoInteractions(writer);
+  }
+
+  @Test
+  public void shouldWriteFile() {
+
+    String targetFile = "hello.txt";
+
+    var result = HelloWorldCommand.execute(new HelloWorldCommand(writer), targetFile);
+
+    assertThat(result).isEqualTo(0);
+
+    verify(writer).sayHello(Path.of(targetFile));
+  }
+
+}
+----
+
+=== Tests for `HelloWorldWriter`
+
+Here are the tests for the `HelloWorldWriter` class.
+
+[source,java]
+----
+class HelloWorldWriterTest {
+
+  @Test
+  public void shouldWriteFile() {
+
+    var writer = new HelloWorldWriter();
+
+    var targetFile = FileUtil.makeTempFilePath("hello.txt");
+
+    writer.sayHello(targetFile);
+
+    assertFileContainsExactly(targetFile, "Hello, World!");
+  }
+
+  private static void assertFileContainsExactly(Path targetFile, String... lines) {
+    var contents = FileUtil.readLinesFromFile(targetFile);
+    assertThat(contents).containsExactly(lines);
+  }
+
+}
+----
+
+=== The utility functions
+
+The utility functions are in the `FileUtil` class.
+
+[source,java]
+----
+public class FileUtil {
+
+    public static void writeLinesToFile(Path targetFile, List<String> lines) {
+      ...
+    }
+}
+----

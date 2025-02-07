@@ -1,0 +1,3 @@
+include 'jbang-scripting-common'
+include 'jbang-scripting-scripts-hello-world'
+
