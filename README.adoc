@@ -192,3 +192,13 @@ public class FileUtil {
     }
 }
 ----
+
+=== `test-scripts.sh`
+
+There's also a `test-scripts.sh` script that invokes the JBang script:
+
+[source,shell]
+----
+#! /bin/bash -e
+./jbang-scripting-scripts-hello-world/scripts/HelloWorld --help
+----
