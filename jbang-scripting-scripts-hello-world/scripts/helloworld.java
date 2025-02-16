@@ -5,7 +5,7 @@
 
 import net.chrisrichardson.scripting.helloWorld.HelloWorldCommand;
 
-public class HelloWorld {
+public class helloworld {
 
     public static void main(String... args) {
         int exitCode = HelloWorldCommand.execute(args);
